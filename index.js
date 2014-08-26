@@ -4,6 +4,7 @@ let emailTemplates = require("email-templates");
 let path = require("path");
 let Joi = require("joi");
 
+
 function loadModules(modules){
   if(typeof modules === "string"){
     modules = [modules];
@@ -22,13 +23,14 @@ function loadModules(modules){
 
 
 var optionsSchema = Joi.object().keys({
+  from: Joi.string(),
   templatesOptions: Joi.object().keys({
     directory: Joi.string(),
     partials: Joi.alternatives().try(Joi.array().min(1), Joi.string()),
     helpers: Joi.alternatives().try(Joi.array().min(1), Joi.string()),
   }),
   transport: Joi.string().required(),
-  from: Joi.string()
+  transportOptions: Joi.object()
 });
 
 
@@ -39,7 +41,7 @@ module.exports.register = function*(plugin, options){
   options.templatesOptions.directory = options.templatesOptions.directory || "templates";
   options.templatesOptions.partials = loadModules(options.templatesOptions.partials);
   options.templatesOptions.helpers = loadModules(options.templatesOptions.helpers);
-  let template = yield emailTemplates.bind(this, options.templatesOptions, options.templatesOptions.directory);
+  let template = yield emailTemplates.bind(this, options.templatesOptions.directory, options.templatesOptions);
   let sendEmail = function(){
     let opts = {};
     let templateName, data = {};
@@ -57,7 +59,7 @@ module.exports.register = function*(plugin, options){
       }
     }
     if(!opts.from) opts.from = options.from;
-    let transport = this.transport = emailer.createTransport(options.transport, options);
+    let transport = emailer.createTransport(options.transport, options.transportOptions || {});
     return function(callback){
       let cb = function(err){
         if(err){
@@ -85,7 +87,11 @@ module.exports.register = function*(plugin, options){
     };
   }
   plugin.expose("sendEmail", sendEmail);
-  plugin.methods("email.send", sendEmail);
+  plugin.method("email.send", sendEmail);
   plugin.expose("nodemailer", nodemailer);
   plugin.expose("emailTemplates", emailTemplates);
+};
+
+module.exports.register.attributes = {
+  pkg: require("./package.json")
 };
