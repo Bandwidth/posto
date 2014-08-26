@@ -19,6 +19,7 @@
     "co-mocha": "1.0.0",
     "hapi": "^6.6.0",
     "mocha": "^1.21.4",
+    "nodemailer-stub-transport": "^0.1.4",
     "should": "^4.0.4",
     "sinon": "^1.10.3",
     "then-jade": "^2.0.0"

@@ -6,7 +6,7 @@ describe("posto", function(){
   let server;
   before(function*(){
     server = yield helper.startServer({
-      transport: "demo",
+      transport: "nodemailer-stub-transport",
       transportOptions: {
         setting1: "test1",
         setting2: 10
@@ -64,8 +64,8 @@ describe("posto", function(){
       yield server.plugins.posto.sendEmail(data);
       createTransportStub.callCount.should.equal(1);
       sendMailSpy.callCount.should.equal(1);
-      createTransportStub.args[0][0].should.equal("demo");
-      createTransportStub.args[0][1].should.eql({
+      createTransportStub.args[0][0].name.should.equal("Stub");
+      createTransportStub.args[0][0].options.should.eql({
         setting1: "test1",
         setting2: 10
       });

@@ -35,6 +35,13 @@ module.exports.register = function*(plugin, options){
     });
   }
   let template = yield emailTemplates.bind(this, options.templatesOptions.directory, options.templatesOptions);
+  let getTransport = function(){
+    let factory = require(options.transport);
+    if(typeof factory !== "function"){
+      throw new Error("Invalid nodemailer provider module \"" + options.transport + "\"");
+    }
+    return factory(options.transportOptions || {});
+  };
   let sendEmail = function*(){
     let opts = {};
     let templateName, data = {};
@@ -52,7 +59,7 @@ module.exports.register = function*(plugin, options){
       }
     }
     if(!opts.from) opts.from = options.from;
-    let transport = nodemailer.createTransport(options.transport, options.transportOptions || {});
+    let transport = nodemailer.createTransport(getTransport());
     if(!opts.from) throw new Error("Missing field 'from'");
     if(!opts.to) throw new Error("Missing field 'to'");
     if(templateName){
@@ -70,6 +77,7 @@ module.exports.register = function*(plugin, options){
     yield transport.sendMail.bind(transport, opts);
   };
   plugin.expose("sendEmail", sendEmail);
+  plugin.expose("getTransport", getTransport);
   plugin.expose("nodemailer", nodemailer);
   plugin.expose("emailTemplates", emailTemplates);
 };
