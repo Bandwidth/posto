@@ -5,28 +5,10 @@ let path = require("path");
 let Joi = require("joi");
 
 
-function loadModules(modules){
-  if(typeof modules === "string"){
-    modules = [modules];
-  }
-  if(!Array.isArray(modules)){
-    return modules;
-  }
-  let result = {};
-  modules.forEach(function(module){
-    module = (typeof module === "string")?require(module):module;
-    for(let k in modules){
-      result[k] = modules[k];
-    }
-  });
-}
-
-
-var optionsSchema = Joi.object().keys({
+let optionsSchema = Joi.object().keys({
   from: Joi.string(),
   templatesOptions: Joi.object().keys({
     directory: Joi.string(),
-    partials: Joi.alternatives().try(Joi.array().min(1), Joi.string()),
     helpers: Joi.alternatives().try(Joi.array().min(1), Joi.string()),
   }),
   transport: Joi.string().required(),
@@ -39,10 +21,21 @@ module.exports.register = function*(plugin, options){
   options = yield Joi.validate.bind(Joi, options, optionsSchema);
   options.templatesOptions = options.templatesOptions || {};
   options.templatesOptions.directory = options.templatesOptions.directory || "templates";
-  options.templatesOptions.partials = loadModules(options.templatesOptions.partials);
-  options.templatesOptions.helpers = loadModules(options.templatesOptions.helpers);
+  let helpers = {};
+  if(options.templatesOptions.helpers){
+    plugin.dependency(options.templatesOptions.helpers, function*(){
+      let emailTemplateHelpers = Array.isArray(options.templatesOptions.helpers) ?
+        options.templatesOptions.helpers : [options.templatesOptions.helpers];
+      emailTemplateHelpers.forEach(function(helper){
+        let instance = (plugin.plugins[helper] || {}).emailTemplateHelpers || {};
+        for(let k in instance){
+          helpers[k] = instance[k];
+        }
+      });
+    });
+  }
   let template = yield emailTemplates.bind(this, options.templatesOptions.directory, options.templatesOptions);
-  let sendEmail = function(){
+  let sendEmail = function*(){
     let opts = {};
     let templateName, data = {};
     if(arguments.length == 1){
@@ -59,35 +52,24 @@ module.exports.register = function*(plugin, options){
       }
     }
     if(!opts.from) opts.from = options.from;
-    let transport = emailer.createTransport(options.transport, options.transportOptions || {});
-    return function(callback){
-      let cb = function(err){
-        if(err){
-          let error = new Error("Error on sending email: " + (err.message || err) + ". Please check email settings.");
-          error.error = err;
-          callback(error);
-        }
-        else{
-          callback.apply(this, arguments);
-        }
-      };
-      if(!opts.from) return cb(new Error("Missing field 'from'"));
-      if(!opts.to) return cb(new Error("Missing field 'to'"));
-      if(templateName){
-        return template(templateName, data, function(err, html, text){
-          if(err) return cb(err);
-          opts.html = html;
-          opts.text = text;
-          transport.sendMail(opts, cb);
-        });
+    let transport = nodemailer.createTransport(options.transport, options.transportOptions || {});
+    if(!opts.from) throw new Error("Missing field 'from'");
+    if(!opts.to) throw new Error("Missing field 'to'");
+    if(templateName){
+      let mergedData = {};
+      for(let k in helpers){
+        mergedData[k] = helpers[k];
       }
-      else{
-        transport.sendMail(opts, cb);
+      for(let k in data){
+        mergedData[k] = data[k];
       }
-    };
-  }
+      let res = yield template.bind(this, templateName, mergedData);
+      opts.html = res[0];
+      opts.text = res[1];
+    }
+    yield transport.sendMail.bind(transport, opts);
+  };
   plugin.expose("sendEmail", sendEmail);
-  plugin.method("email.send", sendEmail);
   plugin.expose("nodemailer", nodemailer);
   plugin.expose("emailTemplates", emailTemplates);
 };
