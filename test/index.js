@@ -24,6 +24,7 @@ describe("posto", function(){
     server.plugins.posto.sendEmail.should.be.a.function;
     server.plugins.posto.nodemailer.should.be.ok;
     server.plugins.posto.emailTemplates.should.be.ok;
+    server.plugins.posto.getTransport.should.be.ok;
   });
   it("should fail if required options are missing", function*(){
     try{
@@ -127,6 +128,13 @@ describe("posto", function(){
       data.from.should.equal("globalFrom");
       data.to.should.equal("to");
       data.html.should.equal("hello world");
+    });
+  });
+  describe("#getTransport", function(){
+    it("should return transport instance", function*(){
+      let transport = server.plugins.posto.getTransport();
+      transport.name.should.equal("Stub");
+      transport.send.should.be.a.function;
     });
   });
 });
