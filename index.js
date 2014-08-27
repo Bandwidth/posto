@@ -11,7 +11,7 @@ let optionsSchema = Joi.object().keys({
     directory: Joi.string(),
     helpers: Joi.alternatives().try(Joi.array().min(1), Joi.string()),
   }),
-  transport: Joi.string().required(),
+  transport: Joi.alternatives().try(Joi.string(), Joi.func()).required(),
   transportOptions: Joi.object()
 });
 
@@ -36,7 +36,7 @@ module.exports.register = function*(plugin, options){
   }
   let template = yield emailTemplates.bind(this, options.templatesOptions.directory, options.templatesOptions);
   let getTransport = function(){
-    let factory = require(options.transport);
+    let factory = (typeof options.transport === "string")?require(options.transport):options.transport;
     if(typeof factory !== "function"){
       throw new Error("Invalid nodemailer provider module \"" + options.transport + "\"");
     }
