@@ -70,7 +70,11 @@ module.exports.register = function*(plugin, options){
       for(let k in data){
         mergedData[k] = data[k];
       }
-      let res = yield template.bind(this, templateName, mergedData);
+      let templateGenerator = template;
+      if(opts.templatesDirectory){
+        templateGenerator = yield emailTemplates.bind(this, opts.templatesDirectory, opts.templatesOptions || options.templatesOptions);
+      }
+      let res = yield templateGenerator.bind(this, templateName, mergedData);
       opts.html = res[0];
       opts.text = res[1];
     }
