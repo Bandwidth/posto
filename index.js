@@ -80,6 +80,9 @@ module.exports.register = function*(plugin, options){
   plugin.expose("getTransport", getTransport);
   plugin.expose("nodemailer", nodemailer);
   plugin.expose("emailTemplates", emailTemplates);
+  plugin.expose("registerHelper", function(name, helper){
+    helpers[name] = helper;
+  });
 };
 
 module.exports.register.attributes = {
