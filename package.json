@@ -1,6 +1,6 @@
 {
   "name": "posto",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Email service for hapi projects",
   "main": "index.js",
   "scripts": {
