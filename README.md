@@ -1,3 +1,5 @@
+# ⚠️ DEPRECATED⚠️ 
+
 ## posto
 [![Build](https://travis-ci.org/bandwidthcom/posto.png)](https://travis-ci.org/bandwidthcom/posto)
 [![Dependencies](https://david-dm.org/bandwidthcom/posto.png)](https://david-dm.org/bandwidthcom/posto)
